@@ -3,9 +3,7 @@ import sys
 from datetime import datetime
 from transcode_audio import transcode_audio as audio
 from convert_to_mp4 import convert_to_mp4 as mp4
-
-video_path = ""
-output_path = f""
+from transcode_av1 import transcode_video as video
 
 def log(msg: str, level="INFO"):
     color = {
@@ -18,6 +16,6 @@ def log(msg: str, level="INFO"):
     print(f"{color}[{level}] {datetime.now().strftime('%H:%M:%S')} | {msg}{reset}")
     sys.stdout.flush()
 
-result = mp4(output_path, log)
+result = video(video_path, output_path, log)
 
 print(f"result : {result}")

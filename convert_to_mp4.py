@@ -18,7 +18,7 @@ def convert_to_mp4(video_path, log):
         "-c:s", "mov_text",
         "-map_metadata", "0",
         "-movflags", "use_metadata_tags",
-        f"{file_folder}\\{file_name}_new.mp4"
+        f"{file_folder}\\{file_name}.mp4"
     ]
 
     process = subprocess.Popen(
