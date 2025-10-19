@@ -1,12 +1,8 @@
-import os
 import sys
 from datetime import datetime
 from transcode_audio import transcode_audio as audio
 from convert_to_mp4 import convert_to_mp4 as mp4
 from transcode_av1 import transcode_video as video
-
-video_path = "C:\\Users\\Pc\\Desktop\\Nouveau dossier\\The.Apprentice.2024.MULTi.VFF.SDR.2160p.WEB.H265-FW.mp4"
-output_path = f"C:\\Users\\Pc\\Desktop\\Nouveau dossier\\Compressed\\The.Apprentice.2024.MULTi.VFF.SDR.2160p.WEB.H265-FW.mp4"
 
 def log(msg: str, level="INFO"):
     color = {
@@ -19,6 +15,6 @@ def log(msg: str, level="INFO"):
     print(f"{color}[{level}] {datetime.now().strftime('%H:%M:%S')} | {msg}{reset}")
     sys.stdout.flush()
 
-result = video(video_path, output_path, log)
+result = audio(video_path, output_path, log)
 
 print(f"result : {result}")

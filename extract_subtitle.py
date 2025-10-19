@@ -25,7 +25,7 @@ def get_subtitles(video_path, log):
         log(f"{len(subtitles)} piste(s) de sous-titres détectée(s)")
         return subtitles
     except subprocess.CalledProcessError as e:
-        raise Exception(f"Erreur lors de la lecteur des sous-titres : {e.stderr.decode()}")
+        raise Exception(f"Erreur lors de la lecture des sous-titres : {e.stderr.decode()}")
 
 
 def extract_subtitles(video_path, output_path, log):
