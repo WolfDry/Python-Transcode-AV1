@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import json
+import re
 
 def get_language_name(code: str) -> str:
     """
@@ -125,6 +126,48 @@ def get_subtitles(video_path, log):
         sys.stderr.write((f"Error: {e}:\n{stderr}\n"))
         sys.exit(-1)
 
+def is_forced(subtitle):
+    """ Check if a subtitle stream is forced.
+
+    Args:
+        subtitle (dict): subtitle stream data
+    Returns:
+        bool: True if the subtitle is forced, False otherwise
+    """
+    forced = subtitle.get("tags", {}).get("forced", "0")
+    title = subtitle.get("tags", {}).get("title", "").lower()
+    if "forcé" in title or "forced" in title:
+        return True
+    return forced == "1"
+
+def is_hearing_impaired(subtitle):
+    """ Check if a subtitle stream is for hearing impaired.
+
+    Args:
+        subtitle (dict): subtitle stream data
+    Returns:
+        bool: True if the subtitle is for hearing impaired, False otherwise
+    """
+    tags = subtitle.get("tags", {})
+    hearing_impaired = tags.get("hearing_impaired", "0")
+    title = tags.get("title", "").lower()
+
+    # Regex keywords with word boundaries
+    patterns = [
+        r"\bsdh\b",
+        r"\bhi\b",
+        r"\bcc\b",
+        r"closed",
+        r"hearing",
+        r"impaired",
+        r"malentendant",
+    ]
+
+    if any(re.search(pattern, title) for pattern in patterns):
+        return True
+
+    return hearing_impaired == "1"
+
 def get_subtitle_data(subtitle):
     """ Get subtitle data from a subtitle stream.
 
@@ -137,11 +180,19 @@ def get_subtitle_data(subtitle):
     index = subtitle["index"]
     lang_code = subtitle.get("tags", {}).get("language", "und")
     title = get_language_name(lang_code)
+    is_forced_sub = is_forced(subtitle)
+    is_hearing_impaired_sub = is_hearing_impaired(subtitle)
+    if is_hearing_impaired_sub:
+        title += " (malentendant)"
+    if is_forced_sub:
+        title += " (forcé)"
     return {
         "codec": codec,
         "index": index,
         "lang": lang_code,
-        "title": title
+        "title": title,
+        "is_forced": is_forced_sub,
+        "is_hearing_impaired": is_hearing_impaired_sub,
     }
 
 def convert_to_mp4(video_path, temp_path, log):
@@ -188,6 +239,15 @@ def convert_to_mp4(video_path, temp_path, log):
             f"-metadata:s:s:{index_out}", f"title={subtitle_data['title']}",
             f"-metadata:s:s:{index_out}", f"language={subtitle_data['lang']}",
         ]
+        if subtitle_data["is_forced"]:
+            command += [f"-disposition:s:{index_out}", "forced"]
+        if subtitle_data["is_hearing_impaired"]:
+            command += [
+                f"-disposition:s:{index_out}", "hearing_impaired",
+                "-metadata:s:s:0", f"handler_name={subtitle_data['title']}",
+                "-metadata:s:s:0", "hearing_impaired=1",
+                "-disposition:s:0","hearing_impaired"
+            ]
         index_out += 1
 
     command += [
@@ -198,24 +258,24 @@ def convert_to_mp4(video_path, temp_path, log):
         f"{temp_path}\\{file_name}.mp4"
     ]
 
-    # process = subprocess.Popen(
-    #     command,
-    #     stdout=subprocess.PIPE,
-    #     stderr=subprocess.STDOUT,
-    #     text=True,
-    #     bufsize=1
-    # )
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1
+    )
 
-    # for line in process.stdout:
-    #     if "frame=" in line or "time=" in line or "Subtitle" in line:
-    #         log(line, "INFO")
-    # result = False
+    for line in process.stdout:
+        if "frame=" in line or "time=" in line or "Subtitle" in line:
+            log(line, "INFO")
+    result = False
 
-    # ret = process.wait()
-    # if ret == 0:
-    #     result = True
-    #     log("✅ Conversion en mp4 ok", "OK")
-    # else:
-    #     result = False
-    #     log(f"❌ Échec pour le transcode audio (code retour {ret})", "ERROR")
-    # return result
+    ret = process.wait()
+    if ret == 0:
+        result = True
+        log("✅ Conversion en mp4 ok", "OK")
+    else:
+        result = False
+        log(f"❌ Échec pour le transcode audio (code retour {ret})", "ERROR")
+    return result

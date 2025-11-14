@@ -228,8 +228,6 @@ def transcode_video(video_path, output_path, log):
         f"{output_path}"
     ]
 
-    print(command)
-
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,

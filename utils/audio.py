@@ -30,7 +30,6 @@ class AudioTrack:
             AudioTrack: instance of AudioTrack
         """
         tags_data = data.get("tags", {})
-        print(data)
         return cls(
             index=data["index"],
             codec_name=data["codec_name"],

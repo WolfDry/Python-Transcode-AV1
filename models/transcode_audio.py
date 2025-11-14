@@ -138,7 +138,6 @@ def get_audio_info(video_path, log) -> list[AudioStream]:
         res = subprocess.run(command, capture_output=True, text=True, check=True)
         data = json.loads(res.stdout)
         audios: list[AudioTrack] = [AudioTrack.from_dict(d) for d in data.get("streams")]
-        print(audios)
         log(f"{len(audios)} piste(s) audio détectée(s)")
         command_data: list[AudioStream] = []
         for audio in audios:
@@ -226,8 +225,6 @@ def transcode_audio(video_path, output_path, log):
         "-map_metadata", "0"
     ]
     command += [output_path]
-    
-    print(command)
 
     process = subprocess.Popen(
         command,
