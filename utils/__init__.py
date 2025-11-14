@@ -1,3 +1,6 @@
-from .audio import AudioStream, AudioTag, AudioTrack
+"""Utility module for media handling."""
 
-__all__ = ["AudioTrack", "AudioStream", "AudioTag"]
+from .audio import AudioStream, AudioTag, AudioTrack
+from .video import VideoTrack, TranscodeData
+
+__all__ = ["AudioTrack", "AudioStream", "AudioTag", "VideoTrack", "TranscodeData"]

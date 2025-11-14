@@ -130,8 +130,7 @@ def get_audio_info(video_path, log) -> list[AudioStream]:
         "ffprobe",
         "-v", "error",
         "-select_streams", "a",
-        "-show_entries",
-        "stream=index,codec_name,channels,channel_layout,bit_rate:stream_tags=language,title",
+        "-show_entries", "stream=index,codec_name,channels,channel_layout,bit_rate:stream_tags=language,title",
         "-of", "json",
         video_path
     ]
@@ -149,10 +148,7 @@ def get_audio_info(video_path, log) -> list[AudioStream]:
                 continue
             if audio.codec_name == "aac":
                 is_aac = True
-                log(
-                    f"La piste audio {audio.tags.title} sera copiée car elle est déjà en aac",
-                    "WARN"
-                )
+                log(f"La piste audio {audio.tags.title} sera copiée car elle est déjà en aac", "WARN")
             bitrate = "192k"
             match audio.channels:
                 case 2: bitrate = "192k"
@@ -226,27 +222,26 @@ def transcode_audio(video_path, output_path, log):
         "-map_metadata", "0"
     ]
     command += [output_path]
-    print(command)
 
-    # process = subprocess.Popen(
-    #     command,
-    #     stdout=subprocess.PIPE,
-    #     stderr=subprocess.STDOUT,
-    #     text=True,
-    #     bufsize=1
-    # )
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1
+    )
 
-    # for line in process.stdout:
-    #     if "frame=" in line or "time=" in line or "Audio" in line:
-    #         sys.stdout.write(line)
-    #         sys.stdout.flush()
-    # result = False
+    for line in process.stdout:
+        if "frame=" in line or "time=" in line or "Audio" in line:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+    result = False
 
-    # ret = process.wait()
-    # if ret == 0:
-    #     result = True
-    #     log("✅ Transcode audio ok", "OK")
-    # else:
-    #     result = False
-    #     log(f"❌ Échec pour le transcode audio (code retour {ret})", "ERROR")
-    # return result
+    ret = process.wait()
+    if ret == 0:
+        result = True
+        log("✅ Transcode audio ok", "OK")
+    else:
+        result = False
+        log(f"❌ Échec pour le transcode audio (code retour {ret})", "ERROR")
+    return result

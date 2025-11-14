@@ -1,14 +1,48 @@
-import subprocess, json, os, sys, re
-from datetime import datetime
+"""Extract subtitles from a video file using ffmpeg and ffprobe.
+
+Raises:
+    FileNotFoundError: _if the video file does not exist
+    Exception: _on ffprobe error
+    FileExistsError: _if the output path does not exist
+
+Returns:
+    bool: result of the extraction
+"""
+
+import subprocess
+import json
+import os
+import sys
+import re
 
 def sanitize(name: str) -> str:
+    """Sanitize a string to be used as a filename by removing invalid characters.
+
+    Args:
+        name (str): name to sanitize
+
+    Returns:
+        str: sanitized name
+    """
     return re.sub(r'[<>:"/\\|?*\n\r\t]', '_', name).strip() or "subtitle"
 
 
 def get_subtitles(video_path, log):
+    """_summary_
+
+    Args:
+        video_path (str): path to the video file
+        log (function): logging function
+
+    Raises:
+        FileNotFoundError: if the video file does not exist
+        Exception: on ffprobe error
+
+    Returns:
+        bool: True if the extraction was successful, False otherwise
+    """
     if not os.path.isfile(video_path):
         raise FileNotFoundError(f"Fichier vidéo non trouvé : {video_path}")
-    
     command = [
         "ffprobe",
         "-v", "error",
@@ -25,16 +59,29 @@ def get_subtitles(video_path, log):
         log(f"{len(subtitles)} piste(s) de sous-titres détectée(s)")
         return subtitles
     except subprocess.CalledProcessError as e:
-        raise Exception(f"Erreur lors de la lecture des sous-titres : {e.stderr.decode()}")
+        stderr = e.stderr.decode('utf-8')
+        sys.stderr.write((f"Error: {e}:\n{stderr}\n"))
+        sys.exit(-1)
 
 
 def extract_subtitles(video_path, output_path, log):
+    """ Extract subtitles from a video file using ffmpeg.
+
+    Args:
+        video_path (str): path to the video file
+        output_path (str): path to save the extracted subtitles
+        log (function): logging function
+
+    Raises:
+        FileExistsError: _if the output path does not exist
+
+    Returns:
+        bool: True if the extraction was successful, False otherwise
+    """
     if not os.path.isdir(output_path):
         raise FileExistsError(f"Fichier vidéo non trouvé : {output_path}")
-    
     subtitles = get_subtitles(video_path, log)
 
-    
     for subtitle in subtitles:
         codec = subtitle.get("codec_name", "unknown")
         index = subtitle["index"]
@@ -74,7 +121,6 @@ def extract_subtitles(video_path, output_path, log):
                 sys.stdout.flush()
 
         result = False
-        
         ret = process.wait()
         if ret == 0:
             result = True
@@ -82,8 +128,4 @@ def extract_subtitles(video_path, output_path, log):
         else:
             result = False
             log(f"❌ Échec pour la piste #{index} (code retour {ret})", "ERROR")
-        
     return result
-
-def main(video_path, output_path, log):
-    return extract_subtitles(video_path, output_path, log)
