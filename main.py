@@ -30,7 +30,7 @@ def log(msg: str, level="INFO"):
     print(f"{color}[{level}] {datetime.now().strftime('%H:%M:%S')} | {msg}{reset}")
     sys.stdout.flush()
 
-RESULT = video(VIDEO_PATH, OUTPUT_PATH, log)
+RESULT = mp4(VIDEO_PATH, TEMP_PATH, log)
 # if RESULT:
 #     log("Conversion en MP4 terminée avec succès.", "OK")
 #     RESULT = audio(VIDEO_PATH, OUTPUT_PATH, log)

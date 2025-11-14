@@ -20,68 +20,68 @@ def get_language_name(code: str) -> str:
     code = code.strip().lower()
 
     languages = {
-        # Français
+        # French
         "fr": "Français",
         "fre": "Français",
         "fra": "Français",
 
-        # Anglais
+        # English
         "en": "Anglais",
         "eng": "Anglais",
 
-        # Espagnol
+        # Spanish
         "es": "Espagnol",
         "spa": "Espagnol",
 
-        # Allemand
+        # German
         "de": "Allemand",
         "ger": "Allemand",
         "deu": "Allemand",
 
-        # Italien
+        # Italian
         "it": "Italien",
         "ita": "Italien",
 
-        # Portugais
+        # Portuguese
         "pt": "Portugais",
         "por": "Portugais",
 
-        # Néerlandais
+        # Dutch
         "nl": "Néerlandais",
         "dut": "Néerlandais",
         "nld": "Néerlandais",
 
-        # Chinois
+        # Chinese
         "zh": "Chinois",
         "chi": "Chinois",
         "zho": "Chinois",
 
-        # Japonais
+        # Japanese
         "ja": "Japonais",
         "jpn": "Japonais",
 
-        # Russe
+        # Russian
         "ru": "Russe",
         "rus": "Russe",
 
-        # Arabe
+        # Arabic
         "ar": "Arabe",
         "ara": "Arabe",
 
-        # Polonais
+        # Polish
         "pl": "Polonais",
         "pol": "Polonais",
 
-        # Turc
+        # Turkish
         "tr": "Turc",
         "tur": "Turc",
 
-        # Coréen
+        # Korean
         "ko": "Coréen",
         "kor": "Coréen",
     }
 
-    return languages.get(code, "Inconnu")
+    return languages.get(code, "Unknown")
 
 def verif_audio(title, index, log) -> bool:
     """Function to verify if the audio track should be removed based on its title.
