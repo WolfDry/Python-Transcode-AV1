@@ -17,6 +17,7 @@ class AudioTrack:
     codec_name: str
     tags: AudioTag
     channels: int = 2
+    bit_rate: int = 0
 
     @classmethod
     def from_dict(cls, data: dict) -> "AudioTrack":
@@ -29,11 +30,13 @@ class AudioTrack:
             AudioTrack: instance of AudioTrack
         """
         tags_data = data.get("tags", {})
+        print(data)
         return cls(
             index=data["index"],
             codec_name=data["codec_name"],
             tags=AudioTag(**tags_data),
-            channels=data.get("channels", 2)
+            channels=data.get("channels", 2),
+            bit_rate=data.get("bit_rate", 0)
         )
 
 @dataclass

@@ -138,6 +138,7 @@ def get_audio_info(video_path, log) -> list[AudioStream]:
         res = subprocess.run(command, capture_output=True, text=True, check=True)
         data = json.loads(res.stdout)
         audios: list[AudioTrack] = [AudioTrack.from_dict(d) for d in data.get("streams")]
+        print(audios)
         log(f"{len(audios)} piste(s) audio détectée(s)")
         command_data: list[AudioStream] = []
         for audio in audios:
@@ -149,11 +150,14 @@ def get_audio_info(video_path, log) -> list[AudioStream]:
             if audio.codec_name == "aac":
                 is_aac = True
                 log(f"La piste audio {audio.tags.title} sera copiée car elle est déjà en aac", "WARN")
-            bitrate = "192k"
-            match audio.channels:
-                case 2: bitrate = "192k"
-                case 6: bitrate = "512k"
-                case 8: bitrate = "640k"
+            if audio.bit_rate:
+                bitrate = str(int(audio.bit_rate) // 1000) + "k"
+            else:
+                bitrate = "192k"
+                match audio.channels:
+                    case 2: bitrate = "192k"
+                    case 6: bitrate = "512k"
+                    case 8: bitrate = "640k"
             command_data.append(
                 AudioStream(
                     index=audio.index,
@@ -222,6 +226,8 @@ def transcode_audio(video_path, output_path, log):
         "-map_metadata", "0"
     ]
     command += [output_path]
+    
+    print(command)
 
     process = subprocess.Popen(
         command,

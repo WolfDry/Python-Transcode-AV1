@@ -2,10 +2,10 @@
 import sys
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 from models.transcode_audio import transcode_audio as audio
 from models.convert_to_mp4 import convert_to_mp4 as mp4
 from models.transcode_av1 import transcode_video as video
-from dotenv import load_dotenv
 
 load_dotenv()
 
