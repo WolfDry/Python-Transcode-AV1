@@ -101,14 +101,59 @@ def verif_audio(title, index, log) -> bool:
         name += "audio descriptive"
     if name != "":
         log(f"La piste audio {index} {title} a été détécté comme {name}", "WARN")
-        response = input("Voulez vous supprimer cette piste ❓ (y/n)").strip().lower()
+        response = input("Voulez vous supprimer cette piste ❓ (y/N)").strip().lower()
         if response == "y":
             log(f"La piste audio {index} {title} sera supprimée")
-            return True
+            return {
+                "remove": True,
+                "name": name
+            }
         else:
             log(f"La piste audio {index} {title} est gardée")
-            return False
-    return False
+            return {
+                "remove": False,
+                "name": name
+            }
+    return {
+        "remove": False,
+        "name": name
+    }
+
+def get_subtitles(video_path, log):
+    """_summary_
+
+    Args:
+        video_path (str): path to the video file
+        log (function): logging function
+
+    Raises:
+        FileNotFoundError: if the video file does not exist
+        Exception: on ffprobe error
+
+    Returns:
+        bool: True if the extraction was successful, False otherwise
+    """
+    if not os.path.isfile(video_path):
+        raise FileNotFoundError(f"Fichier vidéo non trouvé : {video_path}")
+    command = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "s",
+        "-show_entries", "stream=index,codec_name,codec_type:stream_tags=language,title,handler_name",
+        "-of", "json",
+        video_path
+    ]
+
+    try:
+        res = subprocess.run(command, capture_output=True, text=True, check=True, encoding="utf-8", errors="replace")
+        data = json.loads(res.stdout)
+        subtitles = data.get("streams", [])
+        log(f"{len(subtitles)} piste(s) de sous-titres détectée(s)")
+        return subtitles
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode('utf-8')
+        sys.stderr.write((f"Error: {e}:\n{stderr}\n"))
+        sys.exit(-1)
 
 def get_audio_info(video_path, log) -> list[AudioStream]:
     """ Function to get audio stream information from a video file using ffprobe.
@@ -130,12 +175,12 @@ def get_audio_info(video_path, log) -> list[AudioStream]:
         "ffprobe",
         "-v", "error",
         "-select_streams", "a",
-        "-show_entries", "stream=index,codec_name,channels,channel_layout,bit_rate:stream_tags=language,title",
+        "-show_entries", "stream=index,codec_name,channels,channel_layout,bit_rate:stream_tags=language,handler_name",
         "-of", "json",
         video_path
     ]
     try:
-        res = subprocess.run(command, capture_output=True, text=True, check=True)
+        res = subprocess.run(command, capture_output=True, text=True, check=True, encoding="utf-8", errors="replace")
         data = json.loads(res.stdout)
         audios: list[AudioTrack] = [AudioTrack.from_dict(d) for d in data.get("streams")]
         log(f"{len(audios)} piste(s) audio détectée(s)")
@@ -144,8 +189,10 @@ def get_audio_info(video_path, log) -> list[AudioStream]:
             is_aac = False
             new_title = get_language_name(audio.tags.language)
             verification_audio = verif_audio(audio.tags.title, audio.index, log)
-            if verification_audio:
+            if verification_audio["remove"]:
                 continue
+            if verification_audio["name"] != "":
+                new_title += f" ({verification_audio['name']})"
             if audio.codec_name == "aac":
                 is_aac = True
                 log(f"La piste audio {audio.tags.title} sera copiée car elle est déjà en aac", "WARN")
@@ -192,6 +239,7 @@ def transcode_audio(video_path, output_path, log):
     if not os.path.isfile(video_path):
         raise FileNotFoundError(f"Fichier vidéo non trouvé : {video_path}")
     audio_stream = get_audio_info(video_path, log)
+    subtitles = get_subtitles(video_path, log)
 
     command = [
         "ffmpeg",
@@ -206,21 +254,39 @@ def transcode_audio(video_path, output_path, log):
         command += ["-map", f"0:{audio.index}"]
 
         if audio.is_aac:
-            command += [f"-c:a:{index_out}", "copy"]
+            command += [
+                f"-c:a:{index_out}", "copy",        
+                f"-metadata:s:a:{index_out}", f"language={audio.lang}",
+                f"-metadata:s:a:{index_out}", f"handler_name={audio.title}",
+                f"-metadata:s:a:{index_out}", f"title={audio.title}"
+            ]
         else:
             command += [
                 f"-c:a:{index_out}", "aac",
                 f"-b:a:{index_out}", audio.bitrate,
                 f"-ac:a:{index_out}", str(audio.channels),
                 f"-metadata:s:a:{index_out}", f"language={audio.lang}",
+                f"-metadata:s:a:{index_out}", f"handler_name={audio.title}",
                 f"-metadata:s:a:{index_out}", f"title={audio.title}",
             ]
 
         index_out += 1
 
     command += [
-        "-map", "0:s?",
-        "-c:s", "copy",
+        "-map", "0:s",
+        "-c:s", "copy"        
+    ]
+
+    index_out = 0
+    for subtitle in subtitles:
+        command += [
+            f"-metadata:s:s:{index_out}", f"language={subtitle.get("tags", {}).get("language", "und")}",
+            f"-metadata:s:s:{index_out}", f"handler_name={subtitle.get("tags", {}).get("handler_name", "Unknown")}",
+            f"-metadata:s:s:{index_out}", f"title={subtitle.get("tags", {}).get("handler_name", "Unknown")}",
+        ]
+        index_out += 1
+
+    command += [
         "-map", "0:t?",
         "-map_metadata", "0"
     ]
@@ -231,6 +297,8 @@ def transcode_audio(video_path, output_path, log):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1
     )
 

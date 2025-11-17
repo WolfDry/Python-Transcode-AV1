@@ -33,7 +33,10 @@ class AudioTrack:
         return cls(
             index=data["index"],
             codec_name=data["codec_name"],
-            tags=AudioTag(**tags_data),
+            tags=AudioTag(
+                language=tags_data.get("language", "und"),
+                title=tags_data.get("handler_name", "Unknown"),
+            ),
             channels=data.get("channels", 2),
             bit_rate=data.get("bit_rate", 0)
         )

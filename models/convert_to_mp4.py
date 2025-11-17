@@ -126,6 +126,37 @@ def get_subtitles(video_path, log):
         sys.stderr.write((f"Error: {e}:\n{stderr}\n"))
         sys.exit(-1)
 
+def get_audio_data(video_path):
+    """ Get audio stream data from a video file.
+
+    Args:
+        video_path (str): path to the video file
+    Raises:
+        FileNotFoundError: _if the video file does not exist
+        Exception: _if there is an error reading the audio streams
+    Returns:
+        list: list of audio streams in the video file
+    """
+    if not os.path.isfile(video_path):
+        raise FileNotFoundError(f"Fichier vidéo non trouvé : {video_path}")
+    command = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "a",
+        "-show_entries", "stream=index,:stream_tags=language,title",
+        "-of", "json",
+        video_path
+    ]
+    try:
+        res = subprocess.run(command, capture_output=True, text=True, check=True)
+        data = json.loads(res.stdout)
+        audios = data.get("streams", [])
+        return audios
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode('utf-8')
+        sys.stderr.write((f"Error: {e}:\n{stderr}\n"))
+        sys.exit(-1)
+
 def is_forced(subtitle):
     """ Check if a subtitle stream is forced.
 
@@ -215,9 +246,10 @@ def convert_to_mp4(video_path, temp_path, log):
     if not os.path.isdir(temp_path):
         raise NotADirectoryError(f"Dossier temporaire non trouvé : {temp_path}")
 
-    file_name = os.path.basename(video_path).rsplit('.', 1)[0]
+    file_name = os.path.basename(video_path).rsplit('.', 1)[0] + ".mp4"
 
     subtitles = get_subtitles(video_path, log)
+    audios = get_audio_data(video_path)
 
     command = [
         "ffmpeg",
@@ -229,24 +261,31 @@ def convert_to_mp4(video_path, temp_path, log):
     ]
 
     index_out = 0
+    for audio in audios:
+        command += [f"-metadata:s:a:{index_out}", f"title={audio.get("tags").get("title")}",]
+        command += [f"-metadata:s:a:{index_out}", f"handler_name={audio.get("tags").get("title")}",]
+        index_out += 1
+
+    index_out = 0
     for subtitle in subtitles:
         subtitle_data = get_subtitle_data(subtitle)
-        if subtitle_data["codec"] not in {"subrip", "ass", "ssa", "text"}:
-            log(f"Piste #{subtitle_data['index']} ({subtitle_data['lang']}) de type {subtitle_data['codec']} est ignorée", "WARN")
+        if subtitle_data.get("codec") not in {"subrip", "ass", "ssa", "text"}:
+            log(f"Piste #{subtitle_data.get("index")} ({subtitle_data.get("lang")}) de type {subtitle_data.get("codec")} est ignorée", "WARN")
             continue
         command += [
-            "-map", f"0:{subtitle_data['index']}",
-            f"-metadata:s:s:{index_out}", f"title={subtitle_data['title']}",
-            f"-metadata:s:s:{index_out}", f"language={subtitle_data['lang']}",
+            "-map", f"0:{subtitle_data.get("index")}",
+            f"-metadata:s:s:{index_out}", f"title={subtitle_data.get("title")}",
+            f"-metadata:s:s:{index_out}", f"handler_name={subtitle_data.get("title")}",
+            f"-metadata:s:s:{index_out}", f"language={subtitle_data.get("lang")}",
         ]
-        if subtitle_data["is_forced"]:
+        if subtitle_data.get("is_forced"):
             command += [f"-disposition:s:{index_out}", "forced"]
-        if subtitle_data["is_hearing_impaired"]:
+        if subtitle_data.get("is_hearing_impaired"):
             command += [
-                f"-disposition:s:{index_out}", "hearing_impaired",
-                "-metadata:s:s:0", f"handler_name={subtitle_data['title']}",
-                "-metadata:s:s:0", "hearing_impaired=1",
-                "-disposition:s:0","hearing_impaired"
+                f"-metadata:s:s:{index_out}", f"title={subtitle_data.get("title")}",
+                f"-metadata:s:s:{index_out}", f"handler_name={subtitle_data.get("title")}",
+                f"-metadata:s:s:{index_out}", "hearing_impaired=1",
+                f"-disposition:s:{index_out}","hearing_impaired"
             ]
         index_out += 1
 
@@ -254,8 +293,7 @@ def convert_to_mp4(video_path, temp_path, log):
         "-c:s", "mov_text",
         "-map_metadata", "0",
         "-map_chapters", "0",
-        "-movflags", "use_metadata_tags+faststart",
-        f"{temp_path}\\{file_name}.mp4"
+        f"{temp_path}\\{file_name}"
     ]
 
     process = subprocess.Popen(
@@ -269,13 +307,24 @@ def convert_to_mp4(video_path, temp_path, log):
     for line in process.stdout:
         if "frame=" in line or "time=" in line or "Subtitle" in line:
             log(line, "INFO")
-    result = False
-
+    result = {
+        "success": False,
+        "output": "",
+        "file_name": ""
+    }
     ret = process.wait()
     if ret == 0:
-        result = True
+        result = {
+            "success": True,
+            "output": f"{temp_path}\\{file_name}",
+            "file_name": file_name
+        }
         log("✅ Conversion en mp4 ok", "OK")
     else:
-        result = False
+        result = {
+            "success": False,
+            "output": "",
+            "file_name": ""
+        }
         log(f"❌ Échec pour le transcode audio (code retour {ret})", "ERROR")
     return result
