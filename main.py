@@ -48,23 +48,26 @@ def move_file(src: str, dest: str) -> bool:
         log(f"Erreur lors du déplacement du fichier de {src} à {dest} : {e}", "ERROR")
         return False
 
-result = mp4(video_path, temp_path, log)
-if result["success"]:
-    if move_file(result["output"], os.path.join(OUTPUT_PATH, result["file_name"])):
-        log("Conversion en MP4 terminée avec succès.", "OK")
-        video_path = os.path.join(OUTPUT_PATH, result["file_name"])
-        temp_path = os.path.join(temp_path, result["file_name"])
-        audio(video_path, temp_path, log)
-    #     if RESULT:
-    #         log("Transcodage audio terminée avec succès.", "OK")
-    #         RESULT = video(VIDEO_PATH, OUTPUT_PATH, log)
-    #         if RESULT:
-    #             log("Transcodage vidéo AV1 terminé avec succès.", "OK")
-    #         else:
-    #             log("Échec du transcodage vidéo AV1.", "ERROR")
-    #     else:
-    #         log("Échec du transcodage audio.", "ERROR")
-# else:
-#     log("Échec de la conversion en MP4.", "ERROR")
+directory = input("Entrez le répertoire contenant les fichiers vidéo à traiter : ")
+video_files = [f for f in os.listdir(directory) if f.lower().endswith(('.mp4', '.mkv', '.avi', '.mov'))]
+print(f"Fichiers vidéo trouvés : {video_files}")
 
-print(f"RESULT : {result}")
+for video_file in video_files:
+    video_path = os.path.join(directory, video_file)
+    temp_path =os.getenv("TEMP_PATH")
+    log(f"Traitement du fichier vidéo : {video_path}", "INFO")
+    result = mp4(video_path, temp_path, log)
+    if result["success"]:
+        if move_file(result["output"], os.path.join(OUTPUT_PATH, result["file_name"])):
+            log("Conversion en MP4 terminée avec succès.", "OK")
+            video_path = os.path.join(OUTPUT_PATH, result["file_name"])
+            temp_path = os.path.join(temp_path, result["file_name"])
+            if audio(video_path, temp_path, log):
+                if move_file(temp_path, os.path.join(OUTPUT_PATH, result["file_name"])):
+                    log("Transcodage audio terminée avec succès.", "OK")
+                    if video(video_path, temp_path, log):
+                        log("Transcodage vidéo AV1 terminé avec succès.", "OK")
+                        if move_file(temp_path, os.path.join(OUTPUT_PATH, result["file_name"])):
+                            log("Transcodage vidéo AV1 terminé avec succès.", "OK")
+
+# print(f"RESULT : {result}")

@@ -178,6 +178,72 @@ def pick_params_from_source(info):
         "tile_columns": str(tiles)
     }
 
+def get_subtitles(video_path, log):
+    """_summary_
+
+    Args:
+        video_path (str): path to the video file
+        log (function): logging function
+
+    Raises:
+        FileNotFoundError: if the video file does not exist
+        Exception: on ffprobe error
+
+    Returns:
+        bool: True if the extraction was successful, False otherwise
+    """
+    if not os.path.isfile(video_path):
+        raise FileNotFoundError(f"Fichier vidéo non trouvé : {video_path}")
+    command = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "s",
+        "-show_entries", "stream=index,codec_name,codec_type:stream_tags=language,title,handler_name",
+        "-of", "json",
+        video_path
+    ]
+
+    try:
+        res = subprocess.run(command, capture_output=True, text=True, check=True, encoding="utf-8", errors="replace")
+        data = json.loads(res.stdout)
+        subtitles = data.get("streams", [])
+        log(f"{len(subtitles)} piste(s) de sous-titres détectée(s)")
+        return subtitles
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode('utf-8')
+        sys.stderr.write((f"Error: {e}:\n{stderr}\n"))
+        sys.exit(-1)
+
+def get_audio_data(video_path):
+    """ Get audio stream data from a video file.
+
+    Args:
+        video_path (str): path to the video file
+    Raises:
+        FileNotFoundError: _if the video file does not exist
+        Exception: _if there is an error reading the audio streams
+    Returns:
+        list: list of audio streams in the video file
+    """
+    if not os.path.isfile(video_path):
+        raise FileNotFoundError(f"Fichier vidéo non trouvé : {video_path}")
+    command = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "a",
+        "-show_entries", "stream=index,:stream_tags=language,handler_name",
+        "-of", "json",
+        video_path
+    ]
+    try:
+        res = subprocess.run(command, capture_output=True, text=True, check=True, encoding="utf-8", errors="replace")
+        data = json.loads(res.stdout)
+        audios = data.get("streams", [])
+        return audios
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode('utf-8')
+        sys.stderr.write((f"Error: {e}:\n{stderr}\n"))
+        sys.exit(-1)
 
 def get_info(video_path):
     """ Get transcoding information from the video file.
@@ -266,6 +332,9 @@ def transcode_video(video_path, output_path, log):
     maxrate = str(info.maxrate)
     bufsize = str(info.bufsize)
 
+    audios = get_audio_data(video_path)
+    subtitles = get_subtitles(video_path, log)
+
     # Si dispo dans la source alors on rajoute -mastering_display et -content_light
     command = [
         "ffmpeg",
@@ -279,7 +348,32 @@ def transcode_video(video_path, output_path, log):
         "-g", gop,"-rc-lookahead","32","-spatial-aq","1","-temporal-aq","1",
         "-tile-columns", tiles,"-tile-rows","1",
         "-color_primaries", primaries,"-color_trc", trc,"-colorspace", cspace,"-color_range","tv",
-        "-c:a","copy","-c:s","copy",
+        "-c:a","copy",        
+    ]
+
+    index_out = 0
+    for audio in audios:
+        command += [
+            f"-metadata:s:a:{index_out}", f"language={audio.get('tags', {}).get('language','und')}",
+            f"-metadata:s:a:{index_out}", f"handler_name={audio.get('tags', {}).get('handler_name','Unknown')}",
+            f"-metadata:s:a:{index_out}", f"title={audio.get('tags', {}).get('handler_name','Unknown')}",
+        ]
+        index_out += 1
+    
+    command += [
+        "-c:s","copy"
+    ]
+
+    index_out = 0
+    for subtitle in subtitles:
+        command += [
+            f"-metadata:s:s:{index_out}", f"language={subtitle.get('tags', {}).get('language','und')}",
+            f"-metadata:s:s:{index_out}", f"handler_name={subtitle.get('tags', {}).get('handler_name','Unknown')}",
+            f"-metadata:s:s:{index_out}", f"title={subtitle.get('tags', {}).get('handler_name','Unknown')}",
+        ]
+        index_out += 1
+
+    command += [
         "-movflags", "+faststart",
         "-stats","-stats_period","5","-loglevel","info",
         f"{output_path}"
@@ -290,6 +384,8 @@ def transcode_video(video_path, output_path, log):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1
     )
 
