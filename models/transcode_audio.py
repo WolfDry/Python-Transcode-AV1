@@ -273,13 +273,13 @@ def transcode_audio(video_path, output_path, log):
         index_out += 1
 
     command += [
-        "-map", "0:s",
         "-c:s", "copy"        
     ]
 
     index_out = 0
     for subtitle in subtitles:
         command += [
+            "-map", f"0:{subtitle['index']}",
             f"-metadata:s:s:{index_out}", f"language={subtitle.get("tags", {}).get("language", "und")}",
             f"-metadata:s:s:{index_out}", f"handler_name={subtitle.get("tags", {}).get("handler_name", "Unknown")}",
             f"-metadata:s:s:{index_out}", f"title={subtitle.get("tags", {}).get("handler_name", "Unknown")}",

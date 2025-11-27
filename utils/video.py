@@ -6,13 +6,13 @@ from typing import Optional
 class VideoTrack:
     """Class representing video track."""
     pix_fmt: str
-    color_primaries: str
-    color_transfer: str
     width: int
     height: int
     r_frame_rate: str
     avg_frame_rate: str
-    color_space: str
+    color_space: Optional[str] = None
+    color_primaries: Optional[str] = None
+    color_transfer: Optional[str] = None
     bit_rate: Optional[str] = None
     content_light_metadata: Optional[str] = None
     side_data_list: Optional[list] = None

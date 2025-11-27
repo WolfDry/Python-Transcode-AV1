@@ -3,6 +3,7 @@ import sys
 import os
 import shutil
 from datetime import datetime
+import time
 from dotenv import load_dotenv
 from models.transcode_audio import transcode_audio
 from models.convert_to_mp4 import convert_to_mp4
@@ -91,11 +92,15 @@ def process_video(input_file: str, base_filename: str, final_output_path: str) -
 
     try:
         # Étape 1 : Conversion en MP4
+        tic = time.perf_counter()
         log("[Étape 1/3] Conversion en MP4...", "INFO")
         mp4_result = convert_to_mp4(input_file, TEMP_PATH, log)
         if not mp4_result["success"]:
             log("❌ Conversion en MP4 échouée", "ERROR")
             return False
+        toc = time.perf_counter()
+        time_mp4 = toc - tic
+        log(f"⏱️  Temps de conversion en MP4 : {time_mp4:0.2f} secondes", "INFO")
 
         if not move_file(mp4_result["output"], temp_mp4_path):
             log("❌ Déplacement du fichier MP4 échoué", "ERROR")
@@ -104,11 +109,15 @@ def process_video(input_file: str, base_filename: str, final_output_path: str) -
         log("✅ Conversion en MP4 terminée.", "OK")
 
         # Étape 2 : Transcodage audio
+        tic = time.perf_counter()
         log("[Étape 2/3] Transcodage audio...", "INFO")
         if not transcode_audio(temp_mp4_path, temp_audio_path, log):
             log("❌ Transcodage audio échoué", "ERROR")
             cleanup_temp_files(temp_mp4_path)
             return False
+        toc = time.perf_counter()
+        time_audio = toc - tic
+        log(f"⏱️  Temps de transcodage audio : {time_audio:0.2f} secondes", "INFO")
 
         # Remplacer le fichier MP4 par la version avec audio transcodé
         if not move_file(temp_audio_path, temp_mp4_path):
@@ -120,11 +129,15 @@ def process_video(input_file: str, base_filename: str, final_output_path: str) -
         log("✅ Transcodage audio terminé.", "OK")
 
         # Étape 3 : Transcodage vidéo AV1
+        tic = time.perf_counter()
         log("[Étape 3/3] Transcodage vidéo AV1...", "INFO")
         if not transcode_video(temp_mp4_path, temp_final_path, log):
             log("❌ Transcodage vidéo AV1 échoué", "ERROR")
             cleanup_temp_files(temp_mp4_path)
             return False
+        toc = time.perf_counter()
+        time_video = toc - tic
+        log(f"⏱️  Temps de transcodage vidéo AV1 : {time_video:0.2f} secondes", "INFO")
 
         # Déplacer le fichier final vers OUTPUT_PATH
         if not move_file(temp_final_path, final_mp4_path):
@@ -138,6 +151,7 @@ def process_video(input_file: str, base_filename: str, final_output_path: str) -
         # Nettoyage
         cleanup_temp_files(temp_mp4_path)
         log(f"✅ Fichier final sauvegardé : {final_mp4_path}", "OK")
+        log(f"⏱️  Temps total de traitement : {time_mp4 + time_audio + time_video:0.2f} secondes", "INFO")
         return True
 
     except (OSError, ValueError, RuntimeError) as e:
@@ -171,6 +185,7 @@ if __name__ == "__main__":
         log(f"\n{'='*60}", "INFO")
         log(f"Traitement du fichier : {video_file}", "INFO")
         log(f"{'='*60}", "INFO")
+
 
         if process_video(input_path, output_filename, OUTPUT_PATH):
             processed_count += 1

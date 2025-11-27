@@ -305,8 +305,10 @@ def convert_to_mp4(video_path, temp_path, log):
     )
 
     for line in process.stdout:
-        if "frame=" in line or "time=" in line or "Subtitle" in line:
-            log(line, "INFO")
+        if "frame=" in line or "time=" in line or "Audio" in line:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+
     result = {
         "success": False,
         "output": "",
@@ -326,5 +328,5 @@ def convert_to_mp4(video_path, temp_path, log):
             "output": "",
             "file_name": ""
         }
-        log(f"❌ Échec pour le transcode audio (code retour {ret})", "ERROR")
+        log(f"❌ Échec pour le transcode en mp4 (code retour {ret})", "ERROR")
     return result

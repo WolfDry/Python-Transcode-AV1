@@ -271,11 +271,22 @@ New-Item -ItemType Directory -Force -Path "C:\Videos\Temp"
 
 ## 📊 Estimation de temps
 
+**Matériel utilisé :**
+- Intel i5 12400F
+- NVIDIA RTX 4060
+
 Pour une vidéo **FHD (1080p, 2h, 5 Mbps)** :
-- Conversion MP4 : ~10 minutes
-- Transcodage audio : ~5 minutes
-- Transcodage vidéo AV1 : ~30-60 minutes (selon GPU)
-- **Total** : ~45-75 minutes
+- Conversion MP4 : ~6 secondes (selon CPU)
+- Transcodage audio : ~20 minutes (selon CPU)
+- Transcodage vidéo AV1 : ~5 minutes (selon GPU)
+- **Total** : ~25 minutes
+- **Réduction taille** : ~60-70%
+
+Pour une vidéo **FHD (2160p, 2h, 5 Mbps)** : TODO
+- Conversion MP4 : ~6 secondes (selon CPU)
+- Transcodage audio : ~20 minutes (selon CPU)
+- Transcodage vidéo AV1 : ~5 minutes (selon GPU)
+- **Total** : ~25 minutes
 - **Réduction taille** : ~60-70%
 
 ---
