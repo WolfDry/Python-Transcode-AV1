@@ -282,12 +282,12 @@ Pour une vidéo **FHD (1080p, 2h, 5 Mbps)** :
 - **Total** : ~25 minutes
 - **Réduction taille** : ~60-70%
 
-Pour une vidéo **FHD (2160p, 2h, 5 Mbps)** : TODO
-- Conversion MP4 : ~6 secondes (selon CPU)
-- Transcodage audio : ~20 minutes (selon CPU)
-- Transcodage vidéo AV1 : ~5 minutes (selon GPU)
-- **Total** : ~25 minutes
-- **Réduction taille** : ~60-70%
+Pour une vidéo **UHD (2160p, 2h, 25 Mbps)** : TODO
+- Conversion MP4 : ~1 minute (selon CPU)
+- Transcodage audio : ~5 minutes (selon CPU)
+- Transcodage vidéo AV1 : ~17 minutes (selon GPU)
+- **Total** : ~23 minutes
+- **Réduction taille** : ~50%
 
 ---
 

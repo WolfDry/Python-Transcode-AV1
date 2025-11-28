@@ -301,7 +301,8 @@ def convert_to_mp4(video_path, temp_path, log):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-        bufsize=1
+        bufsize=1,
+        encoding="utf-8",
     )
 
     for line in process.stdout:
